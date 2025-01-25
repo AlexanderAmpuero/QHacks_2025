@@ -274,10 +274,11 @@ if __name__ == "__main__":
         # Break on 'q' key
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("total time" + str(time.time() - stime))
+            if os.path.exists("output_image.jpg"):
+                os.remove("output_image.jpg")
             break
 
-        if os.path.exists("output_image.jpg"):
-            os.remove("output_image.jpg")
+       
        
 
     tracker.release()
