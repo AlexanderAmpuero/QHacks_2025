@@ -2,6 +2,7 @@ import time
 import cv2
 import mediapipe as mp
 import numpy as np
+import os
 
 # Scores used for Gen AI feedback
 head_score = 0 # number of times the head turns
@@ -215,6 +216,8 @@ if __name__ == "__main__":
         if not ret:
             break
 
+        cv2.imwrite("output_image.jpg", frame)
+
         # Process the frame
         frame = tracker.process_frame(frame)
 
@@ -272,6 +275,9 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("total time" + str(time.time() - stime))
             break
+
+        if os.path.exists("output_image.jpg"):
+            os.remove("output_image.jpg")
        
 
     tracker.release()
