@@ -48,7 +48,7 @@ class BodyTracker:
         return int(landmark.x * w), int(landmark.y * h)
 
     def calculate_metrics(self):
-        # Example: Calculate neck tilt angle
+        # Example: Calculate neck tilt angle``
         if 'nose' in self.keypoints and 'left_shoulder' in self.keypoints and 'right_shoulder' in self.keypoints:
             nose = self.keypoints['nose']
             left_shoulder = self.keypoints['left_shoulder']
