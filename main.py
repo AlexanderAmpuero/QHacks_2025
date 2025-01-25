@@ -51,15 +51,12 @@ class BodyTracker:
             self.keypoints['nose'] = self._get_coordinates(results, 1)  # Nose landmark index
             self.keypoints['left_eye'] = self._get_coordinates(results, 33)  # Left eye landmark index
             self.keypoints['right_eye'] = self._get_coordinates(results, 133)  # Right eye landmark index
-
-        if results.pose_landmarks:
             # Draw body pose landmarks
             self.mp_drawing.draw_landmarks(
                 frame,
                 results.pose_landmarks,
                 self.mp_holistic.POSE_CONNECTIONS
             )
-
             # Extract left and right hip coordinates to calculate the midpoint
             left_hip = self._get_coordinates(results, 23)  # Left hip landmark index
             right_hip = self._get_coordinates(results, 24)  # Right hip landmark index
@@ -98,16 +95,33 @@ class BodyTracker:
             )
             cv2.putText(
                 frame, f"Right Shoulder-Body Angle: {right_shoulder_body_angle:.2f}°",
-                (10, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+                (10, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
             )
+        else:
+            # These Occur when a person cannot be detected
+            fail_safe = (0, 0, 0, 0)
+            left_elbow, left_hip, left_shoulder, left_wrist = fail_safe
+            left_elbow_angle = 0
+            left_shoulder_body_angle = 0
+            right_elbow, right_hip, right_shoulder, right_wrist = fail_safe
+            right_elbow_angle = 0
+            right_shoulder_body_angle = 0
+            self.keypoints['nose'] = fail_safe
+            self.keypoints['right_eye'] = fail_safe
+            self.keypoints['left_eye'] = fail_safe
+            cv2.putText(
+                frame, "GET BACK IN FRAME",
+                (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 0, 255), 15
+            )
+            
 
         return frame
 
     def _get_coordinates(self, results, index):
         # Extract normalized coordinates for a specific landmark
-        h, w, _ = frame.shape
+        h, w, d = frame.shape
         landmark = results.face_landmarks.landmark[index]
-        return int(landmark.x * w), int(landmark.y * h), landmark.z
+        return int(landmark.x * w), int(landmark.y * h), landmark.z * d
     
 
     def calculate_elbow_angle(self, shoulder, elbow, wrist):
@@ -189,7 +203,6 @@ class BodyTracker:
             self.previous_pitch = pitch
             self.previous_roll = roll
             self.previous_yaw = yaw
-
     
 
 if __name__ == "__main__":
@@ -207,6 +220,7 @@ if __name__ == "__main__":
 
         # Calculate face rotation
         face_metrics = tracker.calculate_face_rotation()
+
         if face_metrics:
             cv2.putText(
                 frame, f"Yaw: {face_metrics['yaw']:.2f} degrees",
@@ -220,13 +234,20 @@ if __name__ == "__main__":
                 frame, f"Pitch: {face_metrics['pitch']:.2f} degrees",
                 (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
             )
+        else:
+            # Handle case when no face is detected
+            cv2.putText(
+                frame, "No face detected",
+                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
+            )
+            print("No face metrics available.")
+
 
         # Display the frame
         cv2.imshow("Holistic Tracker", frame)
 
         # Tracking head turns
         tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
-        print(head_score)
 
         # Position tracking logic
         if get_pos:
