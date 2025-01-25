@@ -2,6 +2,9 @@ import mediapipe as mp
 import cv2
 import numpy as np
 
+
+#imports
+
 class BodyTracker:
     def __init__(self):
         # Initialize Mediapipe pose solution
