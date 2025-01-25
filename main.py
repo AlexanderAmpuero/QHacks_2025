@@ -59,10 +59,47 @@ class BodyTracker:
                 results.pose_landmarks,
                 self.mp_holistic.POSE_CONNECTIONS
             )
+
             # Extract left and right hip coordinates to calculate the midpoint
             left_hip = self._get_coordinates(results, 23)  # Left hip landmark index
             right_hip = self._get_coordinates(results, 24)  # Right hip landmark index
             self.hip_midpoint = self._calculate_midpoint(left_hip, right_hip)
+
+            # Extract necessary coordinates for calculating angles
+            left_shoulder = self._get_coordinates(results, 11)
+            left_elbow = self._get_coordinates(results, 13)
+            left_wrist = self._get_coordinates(results, 15)
+
+            right_shoulder = self._get_coordinates(results, 12)
+            right_elbow = self._get_coordinates(results, 14)
+            right_wrist = self._get_coordinates(results, 16)
+            
+            # Calculate angles
+            left_elbow_angle = self.calculate_elbow_angle(left_shoulder, left_elbow, left_wrist)
+            left_shoulder_body_angle = self.calculate_shoulder_body_angle(left_hip, left_shoulder, left_elbow)
+
+            right_elbow_angle = self.calculate_elbow_angle(right_shoulder, right_elbow, right_wrist)
+            right_shoulder_body_angle = self.calculate_shoulder_body_angle(right_hip, right_shoulder, right_elbow)
+
+            # Display the calculated angles on the frame
+            cv2.putText(
+                frame, f"Left Elbow Angle: {left_elbow_angle:.2f}°",
+                (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+            )
+            cv2.putText(
+                frame, f"Left Shoulder-Body Angle: {left_shoulder_body_angle:.2f}°",
+                (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+            )
+
+            # Display the calculated angles on the frame
+            cv2.putText(
+                frame, f"Right Elbow Angle: {right_elbow_angle:.2f}°",
+                (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+            )
+            cv2.putText(
+                frame, f"Right Shoulder-Body Angle: {right_shoulder_body_angle:.2f}°",
+                (10, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+            )
 
         return frame
 
@@ -71,6 +108,46 @@ class BodyTracker:
         h, w, _ = frame.shape
         landmark = results.face_landmarks.landmark[index]
         return int(landmark.x * w), int(landmark.y * h), landmark.z
+    
+
+    def calculate_elbow_angle(self, shoulder, elbow, wrist):
+        # Convert points to numpy arrays for vector calculations
+        shoulder = np.array(shoulder)
+        elbow = np.array(elbow)
+        wrist = np.array(wrist)
+
+        # Calculate vectors
+        shoulder_to_elbow = elbow - shoulder
+        elbow_to_wrist = wrist - elbow
+
+        # Calculate dot product and magnitudes
+        dot_product = np.dot(shoulder_to_elbow, elbow_to_wrist)
+        magnitude_1 = np.linalg.norm(shoulder_to_elbow)
+        magnitude_2 = np.linalg.norm(elbow_to_wrist)
+
+        # Calculate the angle in radians, then convert to degrees
+        angle = np.arccos(dot_product / (magnitude_1 * magnitude_2))
+        return np.degrees(angle)
+
+    def calculate_shoulder_body_angle(self, hip, shoulder, elbow):
+        # Convert points to numpy arrays for vector calculations
+        hip = np.array(hip)
+        shoulder = np.array(shoulder)
+        elbow = np.array(elbow)
+
+        # Calculate vectors
+        hip_to_shoulder = shoulder - hip
+        shoulder_to_elbow = elbow - shoulder
+
+        # Calculate dot product and magnitudes
+        dot_product = np.dot(hip_to_shoulder, shoulder_to_elbow)
+        magnitude_1 = np.linalg.norm(hip_to_shoulder)
+        magnitude_2 = np.linalg.norm(shoulder_to_elbow)
+
+        # Calculate the angle in radians, then convert to degrees
+        angle = np.arccos(dot_product / (magnitude_1 * magnitude_2))
+        return np.degrees(angle)
+    
 
     def _calculate_midpoint(self, left_hip, right_hip):
         # Calculate the midpoint between two coordinates
@@ -112,6 +189,8 @@ class BodyTracker:
             self.previous_pitch = pitch
             self.previous_roll = roll
             self.previous_yaw = yaw
+
+    
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)  # Open webcam
@@ -177,4 +256,3 @@ if __name__ == "__main__":
     tracker.release()
     cap.release()
     cv2.destroyAllWindows()
-q
