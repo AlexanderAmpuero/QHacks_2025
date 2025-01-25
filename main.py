@@ -12,7 +12,7 @@ timer_active = False
 start_time = 0
 get_pos = True
 
-
+#ah
 
 def calc_distance(p1: tuple, p2: tuple) -> int:
     """Takes two coordinates in (x, y, z) format and calculates the distance between them."""
