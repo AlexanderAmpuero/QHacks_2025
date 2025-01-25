@@ -7,11 +7,15 @@ import os
 # Scores used for Gen AI feedback
 head_score = 0 # number of times the head turns
 body_score = 0 # number of times the person stands still
-arm_score = 0 # number of times the person uses their hands
+hand_score = 0 # number of times the person uses their hands
 
 # booleans used to set a timer for standing too long
 timer_active = False
 get_pos = True
+
+# timer for hand detection
+last_hand_score_time = 0
+hand_score_cooldown = 4
 
 class BodyTracker:
     def __init__(self):
@@ -32,14 +36,20 @@ class BodyTracker:
         self.previous_yaw = 0
         self.previous_roll = 0
 
-        self.hip_midpoint = (0, 0)  # To store the current hip midpoint
-
     def process_frame(self, frame):
         # Convert the frame to RGB as Mediapipe works with RGB
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Process the frame to detect holistic landmarks
         results = self.holistic.process(rgb_frame)
+
+        # add to score if hiding hands for 4 seconds
+        if not (results.left_hand_landmarks or results.right_hand_landmarks):
+            global hand_score, last_hand_score_time
+            current_time = time.time()
+            if current_time - last_hand_score_time >= hand_score_cooldown:
+                hand_score += 1
+                last_hand_score_time = current_time
 
         if results.face_landmarks:
             # Draw face landmarks without connections
@@ -62,51 +72,11 @@ class BodyTracker:
             left_hip = self._get_coordinates(results, 23)  # Left hip landmark index
             right_hip = self._get_coordinates(results, 24)  # Right hip landmark index
             self.hip_midpoint = self._calculate_midpoint(left_hip, right_hip)
-
-            # Extract necessary coordinates for calculating angles
-            left_shoulder = self._get_coordinates(results, 11)
-            left_elbow = self._get_coordinates(results, 13)
-            left_wrist = self._get_coordinates(results, 15)
-
-            right_shoulder = self._get_coordinates(results, 12)
-            right_elbow = self._get_coordinates(results, 14)
-            right_wrist = self._get_coordinates(results, 16)
-            
-            # Calculate angles
-            left_elbow_angle = self.calculate_elbow_angle(left_shoulder, left_elbow, left_wrist)
-            left_shoulder_body_angle = self.calculate_shoulder_body_angle(left_hip, left_shoulder, left_elbow)
-
-            right_elbow_angle = self.calculate_elbow_angle(right_shoulder, right_elbow, right_wrist)
-            right_shoulder_body_angle = self.calculate_shoulder_body_angle(right_hip, right_shoulder, right_elbow)
-
-            # Display the calculated angles on the frame
-            cv2.putText(
-                frame, f"Left Elbow Angle: {left_elbow_angle:.2f}°",
-                (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-            )
-            cv2.putText(
-                frame, f"Left Shoulder-Body Angle: {left_shoulder_body_angle:.2f}°",
-                (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-            )
-
-            # Display the calculated angles on the frame
-            cv2.putText(
-                frame, f"Right Elbow Angle: {right_elbow_angle:.2f}°",
-                (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-            )
-            cv2.putText(
-                frame, f"Right Shoulder-Body Angle: {right_shoulder_body_angle:.2f}°",
-                (10, 0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-            )
         else:
             # These Occur when a person cannot be detected
-            fail_safe = (0, 0, 0, 0)
-            left_elbow, left_hip, left_shoulder, left_wrist = fail_safe
-            left_elbow_angle = 0
-            left_shoulder_body_angle = 0
-            right_elbow, right_hip, right_shoulder, right_wrist = fail_safe
-            right_elbow_angle = 0
-            right_shoulder_body_angle = 0
+            fail_safe = (0, 0, 0)
+            left_hip = 0
+            right_hip = fail_safe
             self.keypoints['nose'] = fail_safe
             self.keypoints['right_eye'] = fail_safe
             self.keypoints['left_eye'] = fail_safe
@@ -123,45 +93,6 @@ class BodyTracker:
         h, w, d = frame.shape
         landmark = results.face_landmarks.landmark[index]
         return int(landmark.x * w), int(landmark.y * h), landmark.z * d
-    
-
-    def calculate_elbow_angle(self, shoulder, elbow, wrist):
-        # Convert points to numpy arrays for vector calculations
-        shoulder = np.array(shoulder)
-        elbow = np.array(elbow)
-        wrist = np.array(wrist)
-
-        # Calculate vectors
-        shoulder_to_elbow = elbow - shoulder
-        elbow_to_wrist = wrist - elbow
-
-        # Calculate dot product and magnitudes
-        dot_product = np.dot(shoulder_to_elbow, elbow_to_wrist)
-        magnitude_1 = np.linalg.norm(shoulder_to_elbow)
-        magnitude_2 = np.linalg.norm(elbow_to_wrist)
-
-        # Calculate the angle in radians, then convert to degrees
-        angle = np.arccos(dot_product / (magnitude_1 * magnitude_2))
-        return np.degrees(angle)
-
-    def calculate_shoulder_body_angle(self, hip, shoulder, elbow):
-        # Convert points to numpy arrays for vector calculations
-        hip = np.array(hip)
-        shoulder = np.array(shoulder)
-        elbow = np.array(elbow)
-
-        # Calculate vectors
-        hip_to_shoulder = shoulder - hip
-        shoulder_to_elbow = elbow - shoulder
-
-        # Calculate dot product and magnitudes
-        dot_product = np.dot(hip_to_shoulder, shoulder_to_elbow)
-        magnitude_1 = np.linalg.norm(hip_to_shoulder)
-        magnitude_2 = np.linalg.norm(shoulder_to_elbow)
-
-        # Calculate the angle in radians, then convert to degrees
-        angle = np.arccos(dot_product / (magnitude_1 * magnitude_2))
-        return np.degrees(angle)
     
 
     def _calculate_midpoint(self, left_hip, right_hip):
