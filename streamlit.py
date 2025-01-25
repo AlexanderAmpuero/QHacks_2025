@@ -1,6 +1,8 @@
 import streamlit as st
 import json
 from streamlit_lottie import st_lottie
+import main
+import ai
 
 # Set Streamlit page configuration for wide layout
 st.set_page_config(
@@ -109,25 +111,21 @@ if st.session_state.current_page == "home":
             st.markdown('</div>', unsafe_allow_html=True)  # Close div container for penguin animation
 
 elif st.session_state.current_page == "uploader":
-    # Video Uploader Page
-    st.markdown('<h1 class="fade-in">Upload Your Presentation Video</h1>', unsafe_allow_html=True)
-    st.write("Upload your presentation video below to get started. Ensure your video has good lighting and clear audio for better analysis.")
+    # Video Uploader Page (Updated with Start and Stop buttons)
+    st.markdown('<h1 class="fade-in">Record Your Presentation</h1>', unsafe_allow_html=True)
+    st.write("Click 'Start' to begin recording and 'Stop' when you are done.")
 
-    # File uploader widget
-    video_file = st.file_uploader("Upload Your Presentation Video", type=["mp4", "mov", "avi"])
+    # Center the buttons using Streamlit columns
+    col1, col2, col3 = st.columns([2, 1, 2])  # Create columns for centering
 
-    if video_file is not None:
-        st.video(video_file)
-        st.write("Thank you for uploading! Click 'Analyze' to proceed.")
+    with col2:
+        # Display Start and Stop buttons
+        if st.button("Start", key="start_button"):
+            st.markdown('<p class="fade-in">Recording started...</p>', unsafe_allow_html=True)
 
-        # Analyze button
-        if st.button("Analyze Video"):
-            st.markdown('<p class="fade-in">Analyzing your video... Please wait.</p>', unsafe_allow_html=True)
-            st.success("Analysis complete!")
-            st.write("Suggestions: Improve eye contact and reduce filler words.")
-            
-            # Celebrate with balloons!
-            st.balloons()  # This will show the celebratory balloons
+
+        if st.button("Stop", key="stop_button"):
+            st.markdown('<p class="fade-in">Recording stopped.</p>', unsafe_allow_html=True)
 
     # Back to Home button
     if st.button("⬅️ Back to Home"):

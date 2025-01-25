@@ -3,25 +3,30 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import os
+import streamlit as st
+import json
+from streamlit_lottie import st_lottie
+import ai
+import threading
 
 # Scores used for Gen AI feedback
-head_score = 0 # number of times the head turns
-body_score = 0 # number of times the person stands still
-hand_score = 0 # number of times the person uses their hands
+head_score = 0  # number of times the head turns
+body_score = 0  # number of times the person stands still
+hand_score = 0  # number of times the person hides their hands
 
 # booleans used to set a timer for standing too long
 timer_active = False
 get_pos = True
 
-# timer for hand detection
-last_hand_score_time = 0
-hand_score_cooldown = 4
+# Initializing the run variable that controls the video loop
+run = True
+
 
 class BodyTracker:
     def __init__(self):
         # Initialize Mediapipe Holistic solution and FaceMesh
 
-        # uses holistic with facemesh to get more accurate roations on the face while having rest of the body
+        # uses holistic with facemesh to get more accurate rotations on the face while having rest of the body
         self.mp_holistic = mp.solutions.holistic
         self.holistic = self.mp_holistic.Holistic()
 
@@ -84,7 +89,6 @@ class BodyTracker:
                 frame, "GET BACK IN FRAME",
                 (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 0, 255), 15
             )
-            
 
         return frame
 
@@ -93,7 +97,6 @@ class BodyTracker:
         h, w, d = frame.shape
         landmark = results.face_landmarks.landmark[index]
         return int(landmark.x * w), int(landmark.y * h), landmark.z * d
-    
 
     def _calculate_midpoint(self, left_hip, right_hip):
         # Calculate the midpoint between two coordinates
@@ -129,20 +132,20 @@ class BodyTracker:
         global head_score
         threshold = 2  # Adjust this value to capture larger head turns (in degrees)
         if abs(self.previous_pitch - pitch) > threshold or \
-        abs(self.previous_roll - roll) > threshold or \
-        abs(self.previous_yaw - yaw) > threshold:
+                abs(self.previous_roll - roll) > threshold or \
+                abs(self.previous_yaw - yaw) > threshold:
             head_score += 1
             self.previous_pitch = pitch
             self.previous_roll = roll
             self.previous_yaw = yaw
-    
 
-if __name__ == "__main__":
+
+def run():
+    global run  # This is the correct place to declare `run` as global
     cap = cv2.VideoCapture(0)  # Open webcam
     tracker = BodyTracker()
 
-    while cap.isOpened():
-        stime = time.time()
+    while run:
         ret, frame = cap.read()
         if not ret:
             break
@@ -176,7 +179,6 @@ if __name__ == "__main__":
             )
             print("No face metrics available.")
 
-
         # Display the frame
         cv2.imshow("Holistic Tracker", frame)
 
@@ -189,7 +191,6 @@ if __name__ == "__main__":
             get_pos = False
             timer_active = True
             start_time = time.time()  # Start the timer
-            head_active = True
 
         if timer_active:
             elapsed_time = time.time() - start_time
@@ -202,16 +203,160 @@ if __name__ == "__main__":
                 get_pos = True
                 timer_active = False
 
-        # Break on 'q' key
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            print("total time" + str(time.time() - stime))
-            if os.path.exists("output_image.jpg"):
-                os.remove("output_image.jpg")
+        if not run:
             break
-
-       
-       
 
     tracker.release()
     cap.release()
     cv2.destroyAllWindows()
+
+    if os.path.exists("output_image.jpg"):
+        os.remove("output_image.jpg")
+
+
+# Set Streamlit page configuration for wide layout
+st.set_page_config(
+    page_title="Presentation Feedback Assistant",
+    page_icon="🖥️",
+    layout="wide",  # Enables wide layout
+)
+
+# CSS Styling for the app
+st.markdown(
+    """
+    <style>
+        h1 {
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+            animation: fade-in 2s ease-in-out;
+        }
+        p {
+            font-size: 16px;
+            color: #555;
+        }
+        .fade-in {
+            animation: fade-in 1.5s ease-in-out;
+        }
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        /* Move the penguin animation */
+        .penguin-container {
+            position: relative;
+            top: -50px;  /* Moves the penguin up */
+            left: 20px;  /* Moves the penguin to the right */
+        }
+        /* Move buttons */
+        .button-container {
+            position: relative;
+            top: -50px;  /* Move buttons upwards */
+            left: 30px;  /* Move buttons to the right */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Function to load Lottie animation
+def load_lottiefile(filepath: str):
+    try:
+        with open(filepath, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.error(f"Error: File '{filepath}' not found!")
+        return None
+    except json.JSONDecodeError:
+        st.error(f"Error: File '{filepath}' is not a valid Lottie JSON file!")
+        return None
+
+# Load Lottie animation for the penguin
+lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
+
+# Set up session state to manage page navigation
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "home"  # Default to home page
+
+# Helper function to switch pages
+def navigate_to(page_name):
+    st.session_state.current_page = page_name
+
+# Main navigation logic
+if st.session_state.current_page == "home":
+    # Home Page
+    st.markdown('<h1 class="fade-in">Welcome to Presentation Feedback Assistant</h1>', unsafe_allow_html=True)
+    st.write("Choose one of the options below to get started!")
+
+    # Grouping content into columns for better layout
+    col1, col2 = st.columns([2, 3])  # Adjusted column widths for better balance
+
+    with col1:
+        # Instruction or option buttons in the main content area
+        st.markdown('<div class="button-container">', unsafe_allow_html=True)  # Open div container for buttons
+        if st.button("Upload Your Video"):
+            navigate_to("uploader")
+        if st.button("Learn More About This App"):
+            navigate_to("about")
+        st.markdown('</div>', unsafe_allow_html=True)  # Close div container for buttons
+
+    with col2:
+        # Display the penguin animation beside the buttons
+        if lottie_penguin:
+            st.markdown('<div class="penguin-container">', unsafe_allow_html=True)  # Open div container for penguin animation
+            st_lottie(
+                lottie_penguin,
+                speed=1,
+                reverse=False,
+                loop=True,
+                quality="low",
+                height=400,  # Keep the same size
+                width=500,  # Keep the same size
+                key="penguin_home",
+            )
+            st.markdown('</div>', unsafe_allow_html=True)  # Close div container for penguin animation
+
+elif st.session_state.current_page == "uploader":
+    # Video Uploader Page (Updated with Start and Stop buttons)
+    st.markdown('<h1 class="fade-in">Record Your Presentation</h1>', unsafe_allow_html=True)
+    st.write("Click 'Start' to begin recording and 'Stop' when you are done.")
+
+    # Center the buttons using Streamlit columns
+    col1, col2, col3 = st.columns([2, 1, 2])  # Create columns for centering
+
+    with col2:
+        # Display Start and Stop buttons
+        if st.button("Start", key="start_button"):
+            st.markdown('<p class="fade-in">Recording started...</p>', unsafe_allow_html=True)
+            # Start the video capture in a separate thread
+            if not st.session_state.get('is_recording', False):
+                st.session_state['is_recording'] = True
+                # We use a separate thread to run the video capture
+                threading.Thread(target=run, daemon=True).start()
+
+        if st.button("Stop", key="stop_button"):
+            st.markdown('<p class="fade-in">Recording stopped.</p>', unsafe_allow_html=True)
+            # Stop the video capture by setting 'run' to False
+            st.session_state['is_recording'] = False
+            run = False
+
+    # Back to Home button
+    if st.button("⬅️ Back to Home"):
+        navigate_to("home")
+
+elif st.session_state.current_page == "about":
+    # About Page
+    st.markdown('<h1 class="fade-in">About Presentation Feedback Assistant</h1>', unsafe_allow_html=True)
+    st.write("""
+        This app is designed to provide actionable feedback on your presentation skills.
+        By analyzing your movements, gestures, and overall delivery, you'll receive
+        suggestions to improve your confidence and engagement with your audience.
+    """)
+
+    # Back to Home button
+    if st.button("⬅️ Back to Home"):
+        navigate_to("home")
