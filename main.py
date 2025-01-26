@@ -5,7 +5,7 @@ import numpy as np
 import streamlit as st
 import json
 from streamlit_lottie import st_lottie
-
+import ai
 # FRONTEND
 scanner = False
 # Set Streamlit page configuration for wide layout
@@ -83,7 +83,7 @@ if st.session_state.current_page == "home":
     with col1:
         # Instruction or option buttons in the main content area
         st.markdown('<div class="button-container">', unsafe_allow_html=True)  # Open div container for buttons
-        if st.button("Upload Your Video"):
+        if st.button("Start Presenting"):
             navigate_to("uploader")
         if st.button("Learn More About This App"):
             navigate_to("about")
@@ -237,6 +237,7 @@ class BodyTracker:
 frame_placeholder = st.empty()
 
 if scanner:
+    stime = time.time()
     cap = cv2.VideoCapture(0)  # Open webcam
     tracker = BodyTracker()
     running = True
@@ -298,8 +299,13 @@ if scanner:
 
         # Stop if "Stop Tracking" button is pressed
         if stop_tracking:
+            tottime = time.time() - stime
             running = False
             navigate_to("home")
+            message = ai.get_feedback({"head_score":head_score / tottime, "hand_score": hand_score / tottime, "body_score": body_score / tottime, "total_time": tottime})
+            hand_score = 0
+            head_score = 0
+            body_score = 0
 
     tracker.release()
     cap.release()
@@ -307,3 +313,4 @@ if scanner:
     st.write(f"Body Score: {body_score}")
     st.write(f"Hand Score: {hand_score}")
     st.warning("Tracking stopped.")
+    st.write(message)
