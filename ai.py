@@ -2,6 +2,8 @@ import os
 import openai
 import streamlit as st
 
+### HEADER
+
 def get_feedback(scores): 
   prompt = f'You are giving feedback to a users presentation, specifically how much they move. you are given a dictionary {scores} which has the following:\
   - the amount of times the speakers head turns per second\
