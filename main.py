@@ -158,60 +158,69 @@ frame_placeholder = st.empty()
 
 if scanner:
     stime = time.time()
-    cap = cv2.VideoCapture(0)
-    progress_bar = st.progress(0)
-    for i in range(100):
-        time.sleep(0.02)  # Simulates progress
-        progress_bar.progress(i + 1)
-    progress_bar = None
-    tracker = BodyTracker()
 
-    running, timer_active, get_pos, start_time = True, False, True, None
-    stop_tracking = st.button("Stop Tracking")
-
-    while running and cap.isOpened():
-        
-        ret, frame = cap.read()
-        if not ret:
-            st.warning("Unable to access webcam.")
+    # Try to access the camera with different indices
+    cap = None
+    for i in range(3):  # Try indices 0, 1, and 2
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
             break
+    if cap is None or not cap.isOpened():
+        st.error("Unable to access the camera. Please check your camera and permissions.")
+    else:
+        progress_bar = st.progress(0)
+        for i in range(100):
+            time.sleep(0.02)  # Simulates progress
+            progress_bar.progress(i + 1)
+        progress_bar = None
+        tracker = BodyTracker()
 
-        frame = tracker.process_frame(frame)
-        face_metrics = tracker.calculate_face_rotation()
+        running, timer_active, get_pos, start_time = True, False, True, None
+        stop_tracking = st.button("Stop Tracking")
 
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame_rgb, channels="RGB")
+        while running and cap.isOpened():
+            
+            ret, frame = cap.read()
+            if not ret:
+                st.warning("Unable to access webcam.")
+                break
 
-        if face_metrics:
-            tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
+            frame = tracker.process_frame(frame)
+            face_metrics = tracker.calculate_face_rotation()
 
-        if get_pos:
-            curr_pos = tracker.hip_midpoint[0]
-            get_pos, timer_active, start_time = False, True, time.time()
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_placeholder.image(frame_rgb, channels="RGB")
 
-        if timer_active:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
-                body_score += 1
-                get_pos, timer_active = True, False
+            if face_metrics:
+                tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
 
+            if get_pos:
+                curr_pos = tracker.hip_midpoint[0]
+                get_pos, timer_active, start_time = False, True, time.time()
+
+            if timer_active:
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
+                    body_score += 1
+                    get_pos, timer_active = True, False
+
+            if stop_tracking:
+                st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
+                tottime = time.time() - stime
+                running = False
+                feedback = ai.get_feedback({
+                    "head_score": head_score / tottime,
+                    "hand_score": hand_score / tottime,
+                    "body_score": body_score / tottime,
+                    "total_time": tottime
+                })
+                lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
+                if lottie_penguin:
+                    st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
+                    st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+        tracker.release()
+        cap.release()
         if stop_tracking:
-            st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
-            tottime = time.time() - stime
-            running = False
-            feedback = ai.get_feedback({
-                "head_score": head_score / tottime,
-                "hand_score": hand_score / tottime,
-                "body_score": body_score / tottime,
-                "total_time": tottime
-            })
-            lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
-            if lottie_penguin:
-                st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
-                st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-    tracker.release()
-    cap.release()
-    if stop_tracking:
-        st.write(feedback)
+            st.write(feedback)
