@@ -1,6 +1,6 @@
 [theme]
 base="light"
-font="monotone"
+font="monospace"
 primaryColor="#C92D2D"
 backgroundColor="#FCE7C8"
 secondaryBackgroundColor="#010101"
