@@ -39,12 +39,12 @@ PABLO the penguin is an AI-powered assistant designed to provide real-time feedb
 
 ## 🖥️ Local Setup
 1. **Clone the Repository**:
-```bashgit clone https://github.com/your-username/pablo-presentation-assistant.git
-cd pablo-presentation-assistant
+```bashgit clone [https://github.com/your-username/pablo-presentation-assistant.git](https://github.com/AlexanderAmpuero/QHacks_2025.git)
+git clone https://github.com/AlexanderAmpuero/QHacks_2025.git
 ```
 2. **Install Dependencies**: Ensure you have Python 3.9 or above installed, then install required libraries:
 ``` bash
-pip install -r requirements.txt
+pip install [library in requirements.txt]
 ````
 3. Run the Application:
 ``` bash
