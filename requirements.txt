@@ -3,3 +3,4 @@ mediapipe
 streamlit
 streamlit-lottie
 opencv-python-headless
+streamlit-webrtc
