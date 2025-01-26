@@ -27,6 +27,3 @@ def get_feedback(scores):
   )
 
   return completion.choices[0].message.content
-
-
-print(get_feedback({'headscores': 10, 'handscores': 1, "Bodyscore": 13, "totaltime":300}))
