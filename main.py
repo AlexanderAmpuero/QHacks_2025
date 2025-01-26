@@ -79,7 +79,7 @@ if st.session_state.current_page == "home":
 elif st.session_state.current_page == "uploader":
     scanner = True
     st.markdown('<h1 class="fade-in">Start Your Video Presentation</h1>', unsafe_allow_html=True)
-    st.write("start the presentation video below to get started.")
+    st.write("Start the presentation video below to get started.")
     if st.button("⬅️ Back to Home"):
         navigate_to("home")
 elif st.session_state.current_page == "about":
@@ -168,14 +168,17 @@ if scanner:
     running, timer_active, get_pos, start_time = True, False, True, None
     stop_tracking = st.button("Stop Tracking")
 
-    # Use Streamlit's camera input instead of OpenCV
-    camera_input = st.camera_input("Capture a frame for analysis")
-
-    if camera_input:
-        cap = cv2.imdecode(camera_input, cv2.IMREAD_COLOR)
-
+    # Explicit camera handling with OpenCV VideoCapture
+    cap = cv2.VideoCapture(0)  # Initialize webcam (0 is the default camera)
+    if not cap.isOpened():
+        st.error("Error: Could not access the camera.")
+    else:
         while running:
-            frame = cap
+            ret, frame = cap.read()
+            if not ret:
+                st.error("Error: Failed to capture frame.")
+                break
+
             frame = tracker.process_frame(frame)
             face_metrics = tracker.calculate_face_rotation()
 
@@ -211,6 +214,8 @@ if scanner:
                     st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
                     st.markdown('</div>', unsafe_allow_html=True)
 
+    cap.release()
     tracker.release()
+
     if stop_tracking:
         st.write(feedback)
