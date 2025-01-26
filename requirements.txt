@@ -2,3 +2,4 @@ openai
 mediapipe
 streamlit
 streamlit_lottie
+cv2
