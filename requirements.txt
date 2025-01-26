@@ -3,4 +3,4 @@ mediapipe
 streamlit
 streamlit-lottie
 streamlit-webrtc
-opencv-python-contrib-headless
+opencv-python-headless
