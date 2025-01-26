@@ -1,5 +1,4 @@
 import time
-time.sleep(1)  # Wait for a second before importing OpenCV
 import cv2
 import mediapipe as mp
 import numpy as np
