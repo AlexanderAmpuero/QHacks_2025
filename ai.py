@@ -12,9 +12,7 @@ def get_feedback(scores):
   the rubric is <0.3 is very little, <0.5 little, <0.6 balanced amount <0.7 a bit much amnd >0.7 is too much\
   you are giving an overall feedback as well as areas that they could improve on. you do not need to state the values, but just give suggestions\
   rank it in what you think they need to work on most'
-  client = openai.OpenAI(
-    api_key=st.secrets['api_keys']
-  )
+  openai.api_key = st.secrets['api_keys']
 
   completion = client.chat.completions.create(
     model="gpt-4o-mini",
