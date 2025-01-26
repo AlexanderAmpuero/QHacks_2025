@@ -1,0 +1,4 @@
+openai
+mediapipe
+streamlit
+streamlit_lottie
