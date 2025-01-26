@@ -1,5 +1,6 @@
 import os
 import openai
+import streamlit as st
 
 
 def get_feedback(scores): 
@@ -12,7 +13,7 @@ def get_feedback(scores):
   you are giving an overall feedback as well as areas that they could improve on. you do not need to state the values, but just give suggestions\
   rank it in what you think they need to work on most'
   client = openai.OpenAI(
-    api_key=os.getenv('OPEN_AI_API')
+    api_key=st.secrets('OPEN_AI_API')
   )
 
   completion = client.chat.completions.create(
