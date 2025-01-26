@@ -174,9 +174,9 @@ if scanner:
         # Access the API key from Streamlit secrets
         openai.api_key = st.secrets["api_keys"]["OPEN_AI_API"]
 
-# Test the API key
-if st.button("Test API Key"):
-    st.write("API Key:", st.secrets["api_keys"]["OPEN_AI_API"])
+        # Test the API key
+        if st.button("Test API Key"):
+            st.write("API Key:", st.secrets["api_keys"]["OPEN_AI_API"])
         ret, frame = cap.read()
         if not ret:
             st.warning("Unable to access webcam.")
