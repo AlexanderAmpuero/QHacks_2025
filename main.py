@@ -158,7 +158,6 @@ frame_placeholder = st.empty()
 
 if scanner:
     stime = time.time()
-    cap = cv2.VideoCapture(0)
     progress_bar = st.progress(0)
     for i in range(100):
         time.sleep(0.02)  # Simulates progress
@@ -169,47 +168,49 @@ if scanner:
     running, timer_active, get_pos, start_time = True, False, True, None
     stop_tracking = st.button("Stop Tracking")
 
-    while running and cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            st.warning("Unable to access webcam.")
-            break
+    # Use Streamlit's camera input instead of OpenCV
+    camera_input = st.camera_input("Capture a frame for analysis")
 
-        frame = tracker.process_frame(frame)
-        face_metrics = tracker.calculate_face_rotation()
+    if camera_input:
+        cap = cv2.imdecode(camera_input, cv2.IMREAD_COLOR)
 
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame_rgb, channels="RGB")
+        while running:
+            frame = cap
+            frame = tracker.process_frame(frame)
+            face_metrics = tracker.calculate_face_rotation()
 
-        if face_metrics:
-            tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_placeholder.image(frame_rgb, channels="RGB")
 
-        if get_pos:
-            curr_pos = tracker.hip_midpoint[0]
-            get_pos, timer_active, start_time = False, True, time.time()
+            if face_metrics:
+                tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
 
-        if timer_active:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
-                body_score += 1
-                get_pos, timer_active = True, False
+            if get_pos:
+                curr_pos = tracker.hip_midpoint[0]
+                get_pos, timer_active, start_time = False, True, time.time()
 
-        if stop_tracking:
-            st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
-            tottime = time.time() - stime
-            running = False
-            feedback = ai.get_feedback({
-                "head_score": head_score / tottime,
-                "hand_score": hand_score / tottime,
-                "body_score": body_score / tottime,
-                "total_time": tottime
-            })
-            lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
-            if lottie_penguin:
-                st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
-                st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
-                st.markdown('</div>', unsafe_allow_html=True)
+            if timer_active:
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
+                    body_score += 1
+                    get_pos, timer_active = True, False
+
+            if stop_tracking:
+                st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
+                tottime = time.time() - stime
+                running = False
+                feedback = ai.get_feedback({
+                    "head_score": head_score / tottime,
+                    "hand_score": hand_score / tottime,
+                    "body_score": body_score / tottime,
+                    "total_time": tottime
+                })
+                lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
+                if lottie_penguin:
+                    st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
+                    st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
     tracker.release()
-    cap.release()
-    st.write(feedback)
+    if stop_tracking:
+        st.write(feedback)
