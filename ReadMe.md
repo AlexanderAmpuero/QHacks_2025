@@ -1,6 +1,6 @@
 # 🐧 PABLO: Your Presentation Assistant for Body Language Observation
 
-PABLO the penguin is an AI-powered assistant designed to provide real-time feedback on your presentation skills by analyzing your body language, including head movement, hand gestures, and posture. This tool leverages advanced computer vision and generative AI techniques to help you improve your presentation style, making your delivery more effective and engaging. As you might tell, PABLO is an acronym for *Presentation Assistant* for *Body Language* and *Observation*!
+PABLO the penguin is an AI-powered assistant designed to provide real-time feedback on your presentation skills by analyzing your body language, including head movement, hand gestures, and posture. This tool leverages advanced computer vision and generative AI techniques to help you improve your presentation style, making your delivery more effective and engaging. As you might tell, PABLO is an acronym for **P**resentation **A**ssistant for **B**ody **L**anguage and **O**bservation!
 
 ---
 
