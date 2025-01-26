@@ -212,4 +212,5 @@ if scanner:
 
     tracker.release()
     cap.release()
-    st.write(feedback)
+    if stop_tracking:
+        st.write(feedback)
