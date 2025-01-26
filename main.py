@@ -1,4 +1,5 @@
 import time
+import cv2
 import mediapipe as mp
 import numpy as np
 import streamlit as st
@@ -103,7 +104,8 @@ class BodyTracker(VideoTransformerBase):
         self.previous_pitch, self.previous_yaw, self.previous_roll = 0, 0, 0
 
     def transform(self, frame):
-        rgb_frame = frame  # Assuming the frame is already in RGB format (no need for cv2.cvtColor)
+        global hand_score, last_hand_score_time
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.holistic.process(rgb_frame)
 
         if not (results.left_hand_landmarks or results.right_hand_landmarks):
@@ -121,9 +123,8 @@ class BodyTracker(VideoTransformerBase):
             self.hip_midpoint = self._calculate_midpoint(left_hip, right_hip)
         else:
             self.keypoints = {'nose': (0, 0, 0), 'left_eye': (0, 0, 0), 'right_eye': (0, 0, 0)}
-            # Instead of using cv2.putText, you can add some logic in Streamlit for warnings or other feedback
-
-        return frame  # Returning the frame as is, no need for cv2 functions
+            cv2.putText(frame, "GET BACK IN FRAME", (100, 400), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 0, 255), 15)
+        return frame
 
     def _get_coordinates(self, results, index):
         h, w, d = frame.shape
