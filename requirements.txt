@@ -1,5 +1,5 @@
 openai
 mediapipe
 streamlit
-streamlit_lottie
-cv2
+streamlit-lottie
+opencv-python
