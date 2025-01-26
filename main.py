@@ -79,7 +79,7 @@ if st.session_state.current_page == "home":
 elif st.session_state.current_page == "uploader":
     scanner = True
     st.markdown('<h1 class="fade-in">Start Your Video Presentation</h1>', unsafe_allow_html=True)
-    st.write("Start the presentation video below to get started.")
+    st.write("start the presentation video below to get started.")
     if st.button("⬅️ Back to Home"):
         navigate_to("home")
 elif st.session_state.current_page == "about":
@@ -158,6 +158,7 @@ frame_placeholder = st.empty()
 
 if scanner:
     stime = time.time()
+    cap = cv2.VideoCapture(0)
     progress_bar = st.progress(0)
     for i in range(100):
         time.sleep(0.02)  # Simulates progress
@@ -168,54 +169,49 @@ if scanner:
     running, timer_active, get_pos, start_time = True, False, True, None
     stop_tracking = st.button("Stop Tracking")
 
-    # Explicit camera handling with OpenCV VideoCapture
-    cap = cv2.VideoCapture(0)  # Initialize webcam (0 is the default camera)
-    if not cap.isOpened():
-        st.error("Error: Could not access the camera.")
-    else:
-        while running:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Error: Failed to capture frame.")
-                break
+    while running and cap.isOpened():
+        
+        ret, frame = cap.read()
+        if not ret:
+            st.warning("Unable to access webcam.")
+            break
 
-            frame = tracker.process_frame(frame)
-            face_metrics = tracker.calculate_face_rotation()
+        frame = tracker.process_frame(frame)
+        face_metrics = tracker.calculate_face_rotation()
 
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(frame_rgb, channels="RGB")
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_placeholder.image(frame_rgb, channels="RGB")
 
-            if face_metrics:
-                tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
+        if face_metrics:
+            tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
 
-            if get_pos:
-                curr_pos = tracker.hip_midpoint[0]
-                get_pos, timer_active, start_time = False, True, time.time()
+        if get_pos:
+            curr_pos = tracker.hip_midpoint[0]
+            get_pos, timer_active, start_time = False, True, time.time()
 
-            if timer_active:
-                elapsed_time = time.time() - start_time
-                if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
-                    body_score += 1
-                    get_pos, timer_active = True, False
+        if timer_active:
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
+                body_score += 1
+                get_pos, timer_active = True, False
 
-            if stop_tracking:
-                st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
-                tottime = time.time() - stime
-                running = False
-                feedback = ai.get_feedback({
-                    "head_score": head_score / tottime,
-                    "hand_score": hand_score / tottime,
-                    "body_score": body_score / tottime,
-                    "total_time": tottime
-                })
-                lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
-                if lottie_penguin:
-                    st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
-                    st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
-                    st.markdown('</div>', unsafe_allow_html=True)
+        if stop_tracking:
+            st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
+            tottime = time.time() - stime
+            running = False
+            feedback = ai.get_feedback({
+                "head_score": head_score / tottime,
+                "hand_score": hand_score / tottime,
+                "body_score": body_score / tottime,
+                "total_time": tottime
+            })
+            lottie_penguin = load_lottiefile("lottiefiles/penguin.json")
+            if lottie_penguin:
+                st.markdown('<div class="penguin-container">', unsafe_allow_html=True)
+                st_lottie(lottie_penguin, speed=1, loop=False, quality="low", height=200, width=1000, key="penguin_home")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    cap.release()
     tracker.release()
-
+    cap.release()
     if stop_tracking:
         st.write(feedback)
