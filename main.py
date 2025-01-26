@@ -161,7 +161,6 @@ if scanner:
     tracker = BodyTracker()
 
     running, timer_active, get_pos, start_time = True, False, True, None
-        
     stop_tracking = st.button("Stop Tracking")
 
     # WebRTC video streamer
