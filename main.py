@@ -5,12 +5,11 @@ import numpy as np
 import streamlit as st
 import json
 from streamlit_lottie import st_lottie
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import ai
 
 # FRONTEND
 scanner = False
-scanner_started = False  # Flag to track if scanner section has started
-stime = None  # Initialize stime here
 
 # Set Streamlit page configuration for wide layout
 st.set_page_config(
@@ -94,7 +93,7 @@ head_score, body_score, hand_score = 0, 0, 0
 timer_active, get_pos = False, True
 last_hand_score_time, hand_score_cooldown = 0, 4
 
-class BodyTracker:
+class BodyTracker(VideoTransformerBase):
     def __init__(self):
         self.mp_holistic = mp.solutions.holistic
         self.holistic = self.mp_holistic.Holistic()
@@ -104,7 +103,7 @@ class BodyTracker:
         self.keypoints = {}
         self.previous_pitch, self.previous_yaw, self.previous_roll = 0, 0, 0
 
-    def process_frame(self, frame):
+    def transform(self, frame):
         global hand_score, last_hand_score_time
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.holistic.process(rgb_frame)
@@ -158,50 +157,19 @@ class BodyTracker:
 
 frame_placeholder = st.empty()
 
-# Main scanner block
 if scanner:
-    scanner_started = True  # Mark the scanner section as started
-    stime = time.time()  # Record start time
-    cap = cv2.VideoCapture(0)
-    progress_bar = st.progress(0)
-    for i in range(100):
-        time.sleep(0.02)  # Simulates progress
-        progress_bar.progress(i + 1)
-    progress_bar = None
     tracker = BodyTracker()
 
     running, timer_active, get_pos, start_time = True, False, True, None
     stop_tracking = st.button("Stop Tracking")
 
-    while running and cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            st.warning("Unable to access webcam.")
-            break
+    # WebRTC video streamer
+    webrtc_streamer(key="example", video_transformer_factory=lambda: tracker)
 
-        frame = tracker.process_frame(frame)
-        face_metrics = tracker.calculate_face_rotation()
-
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame_rgb, channels="RGB")
-
-        if face_metrics:
-            tracker.count_head_turn(face_metrics['roll'], face_metrics['yaw'], face_metrics['pitch'])
-
-        if get_pos:
-            curr_pos = tracker.hip_midpoint[0]
-            get_pos, timer_active, start_time = False, True, time.time()
-
-        if timer_active:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 10 and curr_pos - 200 <= tracker.hip_midpoint[0] <= curr_pos + 200:
-                body_score += 1
-                get_pos, timer_active = True, False
-
+    while running:
         if stop_tracking:
             st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
-            # Ensure that stime is valid before calculating tottime
-            tottime = time.time() - stime if scanner_started else 0
+            tottime = time.time() - stime
             running = False
             feedback = ai.get_feedback({
                 "head_score": head_score / tottime,
@@ -216,5 +184,5 @@ if scanner:
                 st.markdown('</div>', unsafe_allow_html=True)
 
     tracker.release()
-    cap.release()
+
     st.write(feedback)
