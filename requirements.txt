@@ -2,4 +2,4 @@ openai
 mediapipe
 streamlit
 streamlit-lottie
-opencv-python
+opencv-python-headless
