@@ -169,7 +169,7 @@ if scanner:
     while running:
         if stop_tracking:
             st.header("Please wait a moment, PABLO is analyzing your amazing performance!")
-            tottime = time.time() - stime
+            tottime = time.time()
             running = False
             feedback = ai.get_feedback({
                 "head_score": head_score / tottime,
