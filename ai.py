@@ -3,6 +3,9 @@ import streamlit as st
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_keys"]["OPEN_AI_API"]
+st.write(st.secrets)  # Print all secrets to ensure they are available
+st.write(st.secrets["api_keys"]["OPEN_AI_API"])  # Print the API key specifically
+
 
 def get_feedback(scores):
     # Constructing prompt
